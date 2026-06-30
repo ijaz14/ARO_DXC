@@ -1,0 +1,32 @@
+trigger: none
+
+parameters:
+
+- name: clusterName
+  type: string
+  default: aro-sandbox01
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+
+- stage: Validate
+  jobs:
+
+  - job: CheckCluster
+
+    steps:
+
+    - checkout: self
+
+    - task: AzureCLI@2
+      displayName: "Validate ARO"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          chmod +x scripts/*.sh
+          ./scripts/login.sh
+          ./scripts/validate.sh rg-${{ parameters.clusterName }} ${{ parameters.clusterName }}

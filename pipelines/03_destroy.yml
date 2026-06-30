@@ -1,0 +1,69 @@
+trigger: none
+
+parameters:
+
+- name: clusterName
+  type: string
+  default: aro-sandbox01
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+
+# =========================
+# APPROVAL STAGE
+# =========================
+- stage: Approval
+  displayName: "Manual Approval Required Before Destroy"
+  jobs:
+  - job: WaitForApproval
+
+    pool: server
+
+    steps:
+    - task: ManualValidation@0
+      timeoutInMinutes: 1440   # 24 hours
+      inputs:
+        instructions: |
+          You are about to DELETE the ARO sandbox cluster:
+          
+          Cluster: ${{ parameters.clusterName }}
+          
+          This action is IRREVERSIBLE.
+          
+          Approve only if this is expected.
+        onTimeout: reject
+
+# =========================
+# DESTROY STAGE
+# =========================
+- stage: Destroy
+  displayName: "Destroy ARO Sandbox"
+  dependsOn: Approval
+
+  jobs:
+  - job: Delete
+
+    steps:
+
+    - checkout: self
+
+    - task: AzureCLI@2
+      displayName: "Login"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          chmod +x scripts/*.sh
+          ./scripts/login.sh
+
+    - task: AzureCLI@2
+      displayName: "Destroy Resource Group"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          ./scripts/destroy.sh rg-${{ parameters.clusterName }}

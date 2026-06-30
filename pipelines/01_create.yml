@@ -1,0 +1,80 @@
+trigger: none
+
+parameters:
+
+- name: clusterName
+  type: string
+  default: aro-sandbox01
+
+- name: workerCount
+  type: number
+  default: 1
+
+- name: location
+  type: string
+  default: australiaeast
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+
+- stage: Create
+  displayName: "Create ARO Sandbox"
+
+  jobs:
+  - job: Deploy
+
+    steps:
+
+    - checkout: self
+
+    - task: AzureCLI@2
+      displayName: "Login"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          chmod +x scripts/*.sh
+          ./scripts/login.sh
+
+    - task: AzureCLI@2
+      displayName: "Create Resource Group"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          ./scripts/create-rg.sh rg-${{ parameters.clusterName }} ${{ parameters.location }}
+
+    - task: AzureCLI@2
+      displayName: "Deploy ARO"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          ./scripts/deploy.sh \
+            rg-${{ parameters.clusterName }} \
+            ${{ parameters.clusterName }} \
+            ${{ parameters.location }} \
+            ${{ parameters.workerCount }}
+
+    - task: AzureCLI@2
+      displayName: "Validate Cluster"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          ./scripts/validate.sh rg-${{ parameters.clusterName }} ${{ parameters.clusterName }}
+
+    - task: AzureCLI@2
+      displayName: "Get Credentials"
+      inputs:
+        azureSubscription: $(serviceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          ./scripts/get-credentials.sh rg-${{ parameters.clusterName }} ${{ parameters.clusterName }}

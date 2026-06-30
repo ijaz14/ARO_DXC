@@ -1,0 +1,10 @@
+aro-sandbox/
+│
+├── azure-pipelines.yml
+├── README.md
+│
+├── bicep/
+├── scripts/
+├── pipelines/
+├── docs/
+└── variables/

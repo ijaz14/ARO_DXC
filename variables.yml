@@ -1,0 +1,7 @@
+variables:
+
+  serviceConnection: "Azure-ServiceConnection"
+  location: "australiaeast"
+  bicepFile: "bicep/main.bicep"
+  resourceGroupPrefix: "rg"
+  scriptsPath: "scripts"
