@@ -1,0 +1,23 @@
+{
+  "clusterName": {
+    "value": "aro-prod"
+  },
+  "location": {
+    "value": "australiaeast"
+  },
+  "domain": {
+    "value": "aro"
+  },
+  "workerCount": {
+    "value": 1
+  },
+  "clientId": {
+    "value": "<SP-ID>"
+  },
+  "clientSecret": {
+    "value": "<SP-SECRET>"
+  },
+  "pullSecret": {
+    "value": "<PULL-SECRET>"
+  }
+}

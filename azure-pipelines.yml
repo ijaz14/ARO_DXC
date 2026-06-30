@@ -1,0 +1,125 @@
+############## This will create single pipeline with create-destroy options ################## 
+
+
+trigger: none
+
+parameters:
+
+- name: action
+  displayName: Action
+  type: string
+  default: create
+  values:
+    - create
+    - destroy
+
+- name: clusterName
+  displayName: Cluster Name
+  type: string
+  default: aro-sandbox01
+
+- name: location
+  displayName: Region
+  type: string
+  default: australiaeast
+
+- name: workerCount
+  displayName: Worker Node Count
+  type: number
+  default: 1
+
+- name: environment
+  displayName: Environment
+  type: string
+  default: sandbox
+  values:
+    - sandbox
+    - dev
+    - test
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  resourceGroup: "rg-${{ parameters.clusterName }}"
+  bicepFile: "bicep/main.bicep"
+  parameterFile: "bicep/parameters/sandbox.json"
+
+stages:
+
+# =========================
+# CREATE STAGE
+# =========================
+- stage: Create
+  displayName: "Create ARO Cluster"
+  condition: eq('${{ parameters.action }}', 'create')
+
+  jobs:
+  - job: Deploy
+    displayName: "Deploy Infrastructure"
+
+    steps:
+
+    - task: AzureCLI@2
+      displayName: "Create Resource Group + Deploy ARO"
+      inputs:
+        azureSubscription: "Azure-ServiceConnection"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+
+          set -e
+
+          echo "Creating Resource Group if not exists..."
+          az group create \
+            --name $(resourceGroup) \
+            --location ${{ parameters.location }}
+
+          echo "Deploying ARO via Bicep..."
+
+          az deployment group create \
+            --resource-group $(resourceGroup) \
+            --template-file $(bicepFile) \
+            --parameters \
+              clusterName=${{ parameters.clusterName }} \
+              workerCount=${{ parameters.workerCount }} \
+              location=${{ parameters.location }}
+
+          echo "Fetching ARO details..."
+
+          az aro show \
+            --name ${{ parameters.clusterName }} \
+            --resource-group $(resourceGroup) \
+            --output table
+
+---
+
+# =========================
+# DESTROY STAGE
+# =========================
+- stage: Destroy
+  displayName: "Destroy ARO Cluster"
+  condition: eq('${{ parameters.action }}', 'destroy')
+
+  jobs:
+  - job: Delete
+    displayName: "Delete Resource Group"
+
+    steps:
+
+    - task: AzureCLI@2
+      displayName: "Destroy Sandbox"
+      inputs:
+        azureSubscription: "Azure-ServiceConnection"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+
+          echo "Deleting Resource Group: $(resourceGroup)"
+
+          az group delete \
+            --name $(resourceGroup) \
+            --yes \
+            --no-wait
+
+          echo "Deletion triggered successfully"
